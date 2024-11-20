@@ -8,12 +8,11 @@
 #
 
 library(shiny)
-library(datateachr)
 library(tidyverse)
 
 deathSeriesAnnual <- read.delim("C:/Users/katie/Downloads/DeathSeriesAnnual.tab")
 
-# Define UI for application that draws a histogram
+# Define UI for application that draws a graph
 ui <- fluidPage(
   titlePanel("US Opioid Deaths 1999 - 2021"), 
   sidebarLayout(
@@ -27,26 +26,31 @@ ui <- fluidPage(
                               "Division 6: East South Central", 
                               "Division 7: West South Central", 
                               "Division 8: Mountain", 
-                              "Division 9: Pacific"
-                  )
-      ),
-      sliderInput("yearInput", "Year", min = 1999, max = 2021, value = c(1999, 2021))
+                              "Division 9: Pacific")
+                  ),
+      selectInput("ageInput", "Age",
+                  choices = c("0+","18+", "0-44", "45-64")
+                  ),
     ),
     mainPanel(
-      plotOutput("id_point"),
+      plotOutput("plot"),
     )
   )
 )
 
-# Define server logic required to draw a histogram
+# Define server logic required to draw a graph
 server <- function(input, output) {
-
-    output$id_point <- renderPlot({
-        ggplot(deathSeriesAnnual, aes(x = age, y = deaths)) +
+    output$plot <- renderPlot({
+      filtered <- deathSeriesAnnual %>% 
+        filter(state == input$locationInput,
+               age == input$ageInput,
+               ucdtitle == "Drug",
+               mcdtitle == "Opioid",
+               race != "All",
+               gender == "All"
+               )
+        ggplot(filtered, aes(x = year, y = deaths, color = race)) +
         geom_point()
-    })
-    output$id_table <- renderTable({
-      deathSeriesAnnual
     })
 }
 
