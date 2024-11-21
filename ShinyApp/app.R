@@ -13,46 +13,64 @@ dataNCHS$Year <- as.numeric(dataNCHS$Year)
 dataNCHS <- dataNCHS %>% 
   select(c("State", "Year", "Sex", "Age.Group", "Race.and.Hispanic.Origin", "Deaths"))
 
-# Define UI for application that draws a graph
-ui <- fluidPage(theme = shinytheme("superhero"),
-                useShinyjs(),  
-                titlePanel("US Overdose Mortality 1999 - 2022"), 
-                sidebarLayout(
-                  sidebarPanel(
-                    selectInput("groupBy", "Group by",
-                                choices = c("Age Group", "Race", "Sex"), 
-                                selected = "Age Group"
-                    ),
-                    selectInput("agegroupInput", "Age Group",
-                                choices = c("0-14", "15-24", "25-34", "35-44", "45-54", "55-64", "65-74", "75+", "All Ages"),
-                                selected = "All Ages"
-                    ),
-                    selectInput("sexInput", "Sex",
-                                choices = c("Both Sexes", "Male", "Female"),
-                                selected = "Both Sexes"
-                    ),
-                    selectInput("raceInput", "Race",
-                                choices = c("All Races-All Origins", "Hispanic", "Non-Hispanic Black", "Non-Hispanic White"),
-                                selected = "All Races-All Origins"
-                    ),
-                    colourInput("lineColor", "Select Line Color for Total Nationwide Mortality", value = "#FF0000")
+# Define UI for the application
+ui <- fluidPage(
+  theme = shinytheme("flatly"),
+  useShinyjs(),
+  titlePanel("US Overdose Mortality 1999 - 2022"),
+
+  
+  sidebarLayout(
+    sidebarPanel(
+      conditionalPanel(
+        condition = "input.tabs == 'Plot of Nationwide Mortality by Demographic'",
+        selectInput("groupBy", "Group by",
+                    choices = c("Age Group", "Race", "Sex"), 
+                    selected = "Age Group"
+        ),
+        selectInput("agegroupInput", "Age Group",
+                    choices = c("0-14", "15-24", "25-34", "35-44", "45-54", "55-64", "65-74", "75+", "All Ages"),
+                    selected = "All Ages"
+        ),
+        selectInput("sexInput", "Sex",
+                    choices = c("Both Sexes", "Male", "Female"),
+                    selected = "Both Sexes"
+        ),
+        selectInput("raceInput", "Race",
+                    choices = c("All Races-All Origins", "Hispanic", "Non-Hispanic Black", "Non-Hispanic White"),
+                    selected = "All Races-All Origins"
+        ),
+        colourInput("lineColor", "Select Line Color for Total Nationwide Mortality", value = "#FF0000")
+      ),
+      conditionalPanel(
+        condition = "input.tabs == 'Table of State-level Annual Mortality'",
+        selectInput("stateInputforTable", "State",
+                    choices = c("Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", 
+                                "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", 
+                                "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", 
+                                "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", 
+                                "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", 
+                                "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming", "District of Columbia"),
+                    selected = "Alabama"
+        ),
+      )
+    ),
+    
+    mainPanel(
+      tabsetPanel(id = "tabs", 
+                  tabPanel("Plot of Nationwide Mortality by Demographic", 
+                           plotOutput("plot")  
                   ),
-                  mainPanel(
-                    tabsetPanel(
-                      tabPanel("Demographic Makeup of Mortality", 
-                               plotOutput("plot")  # First tab for the plot
-                      ),
-                      tabPanel("Mortality by State", 
-                               DTOutput("data_table")  # Second tab for the data table
-                      )
-                    )
+                  tabPanel("Table of State-level Annual Mortality", 
+                           DTOutput("data_table")
                   )
-                )
+      )
+    )
+  )
 )
 
-# Define server logic required to draw a graph
+# Define server logic
 server <- function(input, output, session) {
-  # Enable or disable selectors based on grouping selector
   observe({
     if (input$groupBy == "Age Group") {
       enable("sexInput")
@@ -70,7 +88,6 @@ server <- function(input, output, session) {
   })
   
   output$plot <- renderPlot({
-    # Filter data based on grouping input
     if (input$groupBy == "Age Group") {
       filtered <- dataNCHS %>%
         filter(Race.and.Hispanic.Origin == input$raceInput,
@@ -108,11 +125,10 @@ server <- function(input, output, session) {
                Race.and.Hispanic.Origin == "All Races-All Origins") %>%
         select(Year, Deaths)
       
-      # Plotting data and total deaths
       ggplot() +
         geom_bar(data = filtered, aes_string(x = "Year", y = "Deaths", fill = group_by_factor), position = "stack", stat = "identity") +
         geom_line(data = total_deaths_by_year, aes(x = Year, y = Deaths, color = "Total Nationwide Mortality"), size = 1.2) + 
-        labs(title = "Opioid Deaths in the United States", x = "Year", y = "Deaths") +
+        labs(title = "Opioid Deaths in United States", x = "Year", y = "Deaths") +
         scale_fill_brewer(palette = "Set3") +  
         scale_color_manual(values = c("Total Nationwide Mortality" = input$lineColor), 
                            labels = "Total Nationwide Mortality") + 
@@ -120,49 +136,27 @@ server <- function(input, output, session) {
         theme(legend.position = "bottom")
     }
   })
+  #print the data table to the data table tab
+  # Reactive expression to filter the data based on the selected inputs
+  filtered_data <- reactive({
+    dataNCHS %>%
+      filter(State == input$stateInputforTable)
+  })
   
-  # Render the data table in the second tab
+  print(glimpse(filtered_data))
+  
+  # Render the filtered data table based on the reactive filtered data
   output$data_table <- renderDT({
-    # Filter data based on the selected grouping
-    if (input$groupBy == "Age Group") {
-      filtered <- dataNCHS %>%
-        filter(Race.and.Hispanic.Origin == input$raceInput,
-               Sex == input$sexInput,
-               Age.Group != "All Ages",
-               State != "United States")  # Excluding US total
-    } else if (input$groupBy == "Race") {
-      filtered <- dataNCHS %>%
-        filter(Age.Group == input$agegroupInput,
-               Sex == input$sexInput,
-               Race.and.Hispanic.Origin != "All Races-All Origins",
-               State != "United States")  # Excluding US total
-    } else if (input$groupBy == "Sex") {
-      filtered <- dataNCHS %>%
-        filter(Race.and.Hispanic.Origin == input$raceInput,
-               Age.Group == input$agegroupInput,
-               Sex != "Both Sexes",
-               State != "United States")  # Excluding US total
-    }
-    
-    # Select relevant columns to display: State, Age Group, Race, Sex
-    filtered_table <- filtered %>%
-      select(State, Age.Group, Race.and.Hispanic.Origin, Sex, Deaths)
-    
-    # Return the data table with custom styling
-    datatable(filtered_table, 
-              options = list(pageLength = 10, 
-                             autoWidth = TRUE, 
-                             dom = 't',  # Hide table controls
-                             columnDefs = list(list(targets = 0, width = '20%'),
-                                               list(targets = 1:4, width = '15%'))),  # Adjust column widths
-              class = 'display') %>%  # Ensure table is styled with default display class
-      formatStyle(
-        columns = 1:5,  # Apply styling to all columns
-        backgroundColor = 'white'  # Set background color to white
-      )
+    datatable(filtered_data(),
+              options = list(
+                pageLength = 100, 
+                autoWidth = TRUE, 
+                dom = 'lftip',
+                filter = 'top'
+              ),
+              class = 'display')
   })
 }
 
 # Run the application 
 shinyApp(ui = ui, server = server)
-
