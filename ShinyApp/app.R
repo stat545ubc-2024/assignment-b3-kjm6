@@ -4,10 +4,12 @@ library(shinythemes)
 library(ggthemes) 
 library(shinyjs)
 library(colourpicker)
-library(DT)  # To render the data table
+library(DT)
+library(rsconnect)
 
 # Load in data
 dataNCHS <- read.csv("https://raw.githubusercontent.com/stat545ubc-2024/assignment-b3-kjm6/refs/heads/main/NCHS_DrugPoisioningMortalityUnitedStates.csv?token=GHSAT0AAAAAACXS4QIEBM3C7AFVVQJLY6YEZZ7SKIQ")
+#Clean and filter data
 dataNCHS$Deaths <- as.numeric(gsub(",", "", dataNCHS$Deaths)) 
 dataNCHS$Year <- as.numeric(dataNCHS$Year) 
 dataNCHS <- dataNCHS %>% 
@@ -18,11 +20,11 @@ ui <- fluidPage(
   theme = shinytheme("flatly"),
   useShinyjs(),
   titlePanel("US Overdose Mortality 1999 - 2022"),
-  
-
-  
-  sidebarLayout(
+    sidebarLayout(
     sidebarPanel(
+      #FEATURE: This conditional sidebar panel is for the graphing tab.It includes a drop-down to select how bar-charts 
+      #will be grouped, along with selecting other demographic features to filter by or not. If a filter set is selected 
+      #which does not display available data, it displays text that the data is not available.
       conditionalPanel(
         condition = "input.tabs == 'Plot of Nationwide Mortality by Demographic'",
         selectInput("groupBy", "Group by",
@@ -43,6 +45,8 @@ ui <- fluidPage(
         ),
         colourInput("lineColor", "Select Line Color for Total Nationwide Mortality", value = "#FF0000")
       ),
+      #FEATURE: This conditional sidebar panel is for the table tab. It includes a multiple selector to select states
+      #to be visible in the table. It also includes a button to download a CSV of the current table format.
       conditionalPanel(
         condition = "input.tabs == 'Table of State-level Annual Mortality'",
         selectInput("stateInputforTable", "State",
@@ -171,3 +175,6 @@ server <- function(input, output, session) {
 
 # Run the application 
 shinyApp(ui = ui, server = server)
+
+# Deploy app to shiny
+rsconnect::deployApp(server = "shinyapps.io")
