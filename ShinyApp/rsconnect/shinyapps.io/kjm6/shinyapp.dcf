@@ -1,0 +1,10 @@
+name: shinyapp
+title:
+username: kjm6
+account: kjm6
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 13418144
+bundleId: 9399421
+url: https://kjm6.shinyapps.io/shinyapp/
+version: 1

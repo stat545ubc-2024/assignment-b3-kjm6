@@ -8,7 +8,7 @@ library(DT)
 library(rsconnect)
 
 # Load in data
-dataNCHS <- read.csv("https://raw.githubusercontent.com/stat545ubc-2024/assignment-b3-kjm6/refs/heads/main/NCHS_DrugPoisioningMortalityUnitedStates.csv?token=GHSAT0AAAAAACXS4QIEBM3C7AFVVQJLY6YEZZ7SKIQ")
+dataNCHS <- read.csv("https://raw.githubusercontent.com/stat545ubc-2024/assignment-b3-kjm6/refs/heads/main/NCHS_DrugPoisioningMortalityUnitedStates.csv")
 #Clean and filter data
 dataNCHS$Deaths <- as.numeric(gsub(",", "", dataNCHS$Deaths)) 
 dataNCHS$Year <- as.numeric(dataNCHS$Year) 
@@ -19,12 +19,12 @@ dataNCHS <- dataNCHS %>%
 ui <- fluidPage(
   theme = shinytheme("flatly"),
   useShinyjs(),
-  titlePanel("US Overdose Mortality 1999 - 2022"),
+  titlePanel("US Overdose Mortality 1999 - 2016"),
     sidebarLayout(
     sidebarPanel(
-      #FEATURE: This conditional sidebar panel is for the graphing tab.It includes a drop-down to select how bar-charts 
-      #will be grouped, along with selecting other demographic features to filter by or not. If a filter set is selected 
-      #which does not display available data, it displays text that the data is not available.
+      #FEATURE: This conditional sidebar panel is for the graphing tab. It includes a drop-down to select how bar-charts 
+      #will be grouped, along with selecting other demographic features to filter by. If a filter set is selected 
+      #which does not display available data, the output displays text that the data is not available.
       conditionalPanel(
         condition = "input.tabs == 'Plot of Nationwide Mortality by Demographic'",
         selectInput("groupBy", "Group by",
@@ -78,6 +78,7 @@ ui <- fluidPage(
 
 # Define server logic
 server <- function(input, output, session) {
+  #FEATURE: This code will disable the selection box for whichever demographic is selected in the group-by drop-down
   observe({
     if (input$groupBy == "Age Group") {
       enable("sexInput")
@@ -131,7 +132,8 @@ server <- function(input, output, session) {
                Sex == "Both Sexes",
                Race.and.Hispanic.Origin == "All Races-All Origins") %>%
         select(Year, Deaths)
-      
+      #FEATURE: This code prints a plot with a line graph showing total US mortality and a stacked barchart splitting mortality 
+      #by selected demographic grouping
       ggplot() +
         geom_bar(data = filtered, aes_string(x = "Year", y = "Deaths", fill = group_by_factor), position = "stack", stat = "identity") +
         geom_line(data = total_deaths_by_year, aes(x = Year, y = Deaths, color = "Total Nationwide Mortality"), size = 1.2) + 
@@ -146,10 +148,10 @@ server <- function(input, output, session) {
   #print the data table to the data table tab
   filtered_data <- reactive({
     dataNCHS %>%
-      filter(State %in% input$stateInputforTable)  # Added support for multiple states (input$stateInputforTable is now a vector)
+      filter(State %in% input$stateInputforTable)
   })
   
-  # Render the filtered data table based on the reactive filtered data
+  #FEATURE: This code prints a table showing data for the selected states from the input point.
   output$data_table <- renderDT({
     datatable(filtered_data(),
               options = list(
@@ -161,7 +163,7 @@ server <- function(input, output, session) {
               class = 'display')
   })
   
-  # Corrected download handler
+  #FEATURE: This code names and exports a file of the user's view of the data table as a CSV file
   output$downloadData <- downloadHandler(
     filename = function() {
       paste("StateLevelOpioidMortality", paste(input$stateInputforTable, collapse = "_"), Sys.Date(), ".csv")
@@ -175,6 +177,3 @@ server <- function(input, output, session) {
 
 # Run the application 
 shinyApp(ui = ui, server = server)
-
-# Deploy app to shiny
-rsconnect::deployApp(server = "shinyapps.io")
