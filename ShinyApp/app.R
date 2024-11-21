@@ -7,7 +7,7 @@ library(colourpicker)
 library(DT)  # To render the data table
 
 # Load in data
-dataNCHS <- read.csv("C:/Users/katie/Downloads/NCHS_-_Drug_Poisoning_Mortality_by_State__United_States_20241120 (1).csv")
+dataNCHS <- read.csv("https://raw.githubusercontent.com/stat545ubc-2024/assignment-b3-kjm6/refs/heads/main/NCHS_DrugPoisioningMortalityUnitedStates.csv?token=GHSAT0AAAAAACXS4QIF2QXA2PLHDPHN2IJMZZ7SAUQ")
 dataNCHS$Deaths <- as.numeric(gsub(",", "", dataNCHS$Deaths)) 
 dataNCHS$Year <- as.numeric(dataNCHS$Year) 
 dataNCHS <- dataNCHS %>% 
@@ -128,7 +128,7 @@ server <- function(input, output, session) {
       ggplot() +
         geom_bar(data = filtered, aes_string(x = "Year", y = "Deaths", fill = group_by_factor), position = "stack", stat = "identity") +
         geom_line(data = total_deaths_by_year, aes(x = Year, y = Deaths, color = "Total Nationwide Mortality"), size = 1.2) + 
-        labs(title = "Opioid Deaths in United States", x = "Year", y = "Deaths") +
+        labs(title = "Opioid Overdose Deaths in the United States", x = "Year", y = "Deaths") +
         scale_fill_brewer(palette = "Set3") +  
         scale_color_manual(values = c("Total Nationwide Mortality" = input$lineColor), 
                            labels = "Total Nationwide Mortality") + 
@@ -143,13 +143,11 @@ server <- function(input, output, session) {
       filter(State == input$stateInputforTable)
   })
   
-  print(glimpse(filtered_data))
-  
   # Render the filtered data table based on the reactive filtered data
   output$data_table <- renderDT({
     datatable(filtered_data(),
               options = list(
-                pageLength = 100, 
+                pageLength = 25, 
                 autoWidth = TRUE, 
                 dom = 'lftip',
                 filter = 'top'
