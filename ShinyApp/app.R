@@ -7,7 +7,7 @@ library(colourpicker)
 library(DT)  # To render the data table
 
 # Load in data
-dataNCHS <- read.csv("https://raw.githubusercontent.com/stat545ubc-2024/assignment-b3-kjm6/refs/heads/main/NCHS_DrugPoisioningMortalityUnitedStates.csv?token=GHSAT0AAAAAACXS4QIF2QXA2PLHDPHN2IJMZZ7SAUQ")
+dataNCHS <- read.csv("https://raw.githubusercontent.com/stat545ubc-2024/assignment-b3-kjm6/refs/heads/main/NCHS_DrugPoisioningMortalityUnitedStates.csv?token=GHSAT0AAAAAACXS4QIEBM3C7AFVVQJLY6YEZZ7SKIQ")
 dataNCHS$Deaths <- as.numeric(gsub(",", "", dataNCHS$Deaths)) 
 dataNCHS$Year <- as.numeric(dataNCHS$Year) 
 dataNCHS <- dataNCHS %>% 
@@ -18,6 +18,7 @@ ui <- fluidPage(
   theme = shinytheme("flatly"),
   useShinyjs(),
   titlePanel("US Overdose Mortality 1999 - 2022"),
+  
 
   
   sidebarLayout(
@@ -51,8 +52,10 @@ ui <- fluidPage(
                                 "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", 
                                 "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", 
                                 "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming", "District of Columbia"),
-                    selected = "Alabama"
+                    selected = "Alabama",
+                    multiple = TRUE
         ),
+        downloadButton("downloadData", "Download State-level Data"),
       )
     ),
     
@@ -137,10 +140,9 @@ server <- function(input, output, session) {
     }
   })
   #print the data table to the data table tab
-  # Reactive expression to filter the data based on the selected inputs
   filtered_data <- reactive({
     dataNCHS %>%
-      filter(State == input$stateInputforTable)
+      filter(State %in% input$stateInputforTable)  # Added support for multiple states (input$stateInputforTable is now a vector)
   })
   
   # Render the filtered data table based on the reactive filtered data
@@ -154,6 +156,17 @@ server <- function(input, output, session) {
               ),
               class = 'display')
   })
+  
+  # Corrected download handler
+  output$downloadData <- downloadHandler(
+    filename = function() {
+      paste("StateLevelOpioidMortality", paste(input$stateInputforTable, collapse = "_"), Sys.Date(), ".csv")
+    },
+    content = function(file) {
+      # Write the filtered data to a CSV file
+      write.csv(filtered_data(), file)
+    }
+  )
 }
 
 # Run the application 
